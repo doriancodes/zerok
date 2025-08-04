@@ -34,6 +34,17 @@ paths = ["/etc/config"]
 [capabilities.network.connect]
 hosts = ["api.example.com:443"]
 ```
+ 
+| Field Name        | Offset (bytes) | Size (bytes) | Description                           |
+| ----------------- | -------------- | ------------ | ------------------------------------- |
+| `magic`           | 0–3            | 4            | ASCII `"KPKG"` — file identifier      |
+| `version`         | 4–5            | 2            | Format version (e.g. `1`)             |
+| `manifest_size`   | 6–9            | 4            | Length of the manifest in bytes       |
+| `binary_size`     | 10–17          | 8            | Length of the binary payload in bytes |
+| `binary_offset`   | 18–25          | 8            | Start offset of the binary data       |
+| `manifest_offset` | 26–33          | 8            | Start offset of the manifest data     |
+| (padding)         | 34–39          | 6            | Reserved for future use               |
+
 ## Roadmap
 - verify and inspect subcommands
 - Digital signature support

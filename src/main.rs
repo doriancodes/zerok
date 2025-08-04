@@ -1,3 +1,5 @@
+mod inspect;
+mod kpkg;
 mod package;
 
 use clap::{Parser, Subcommand};
@@ -13,12 +15,15 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Package a folder into a .kpkg binary
     Package {
         #[arg(short, long)]
         input: PathBuf,
         #[arg(short, long)]
         output: PathBuf,
+    },
+    Inspect {
+        #[arg(short, long)]
+        path: PathBuf,
     },
 }
 
@@ -28,6 +33,9 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Package { input, output } => {
             package(PackageOptions { input, output })?;
+        }
+        Commands::Inspect { path } => {
+            inspect::inspect(path)?;
         }
     }
 
