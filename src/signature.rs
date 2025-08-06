@@ -60,3 +60,31 @@ pub fn generate_keypair(secret_path: &Path, pub_path: &Path) -> Result<()> {
     fs::write(pub_path, verifying_key.to_bytes()).context("Failed to write public key")?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_signature_cycle() -> Result<()> {
+        let mut secret_file = NamedTempFile::new()?;
+        let mut pub_file = NamedTempFile::new()?;
+
+        generate_keypair(secret_file.path(), pub_file.path())?;
+
+        let signing_key = load_keypair(secret_file.path())?;
+        let verifying_key = load_public_key(pub_file.path())?;
+
+        let mut target = NamedTempFile::new()?;
+        writeln!(target, "hello test")?;
+
+        let sig = sign_file(target.path(), &signing_key)?;
+        save_signature(Path::new("/tmp/test.sig"), &sig)?;
+        let sig2 = load_signature(Path::new("/tmp/test.sig"))?;
+
+        assert!(verify_file(target.path(), &verifying_key, &sig2)?);
+        Ok(())
+    }
+}
