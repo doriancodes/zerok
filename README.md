@@ -11,12 +11,31 @@
 - Flat binary format with `KPKG` magic header
 - Unit tested, modular CLI with subcommands
 
-## Example
+## Usage
 
 Create a `.kpkg` file from a folder with `binary` and `.kpkg.toml`:
 
 ```bash
 zerok package --input ./project --output myapp.kpkg
+```
+Generate a key pair
+```bash
+zerok gen-key --private ed25519.key --public ed25519.pub
+```
+Sign the package
+```bash
+zerok sign --path myapp.kpkg --key ed25519.key
+```
+Verify the signature
+```bash
+zerok verify \
+  --path myapp.kpkg \
+  --pubkey ed25519.pub \
+  --signature signature.sig
+```
+Inspect the package
+```bash
+zerok inspect --path myapp.kpkg
 ```
 ## Manifest Format
 A .kpkg.toml file might look like:
@@ -46,7 +65,5 @@ hosts = ["api.example.com:443"]
 | (padding)         | 34–39          | 6            | Reserved for future use               |
 
 ## Roadmap
-- verify and inspect subcommands
-- Digital signature support
 - .meta.toml inclusion
 - Integration with Microkit/seL4
