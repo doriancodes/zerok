@@ -12,6 +12,7 @@ libfuzzer-sys = "0.4"
 # helpers for constructing inputs
 arbitrary = { version = "1", features = ["derive"] }
 toml = "0.8"
+tempfile = "3.20.0"
 
 [dependencies.zerok]
 path = ".."
