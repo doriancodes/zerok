@@ -1,5 +1,5 @@
 use crate::kpkg::{KpkgHeader, parse_manifest};
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::PathBuf;

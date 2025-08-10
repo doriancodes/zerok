@@ -23,8 +23,7 @@ pub fn inspect(path: PathBuf) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::kpkg::{KpkgFile, KpkgHeader};
-    use std::fs::File;
+    use crate::kpkg::KpkgHeader;
     use std::io::Write;
     use tempfile::NamedTempFile;
 

@@ -129,7 +129,7 @@ impl KpkgHeader {
 }
 
 fn validate_header(h: &KpkgHeader) -> anyhow::Result<()> {
-    use anyhow::{Context, bail};
+    use anyhow::bail;
     if h.manifest_offset != 40 {
         bail!("Invalid manifest_offset");
     }
@@ -374,7 +374,7 @@ max_bytes = 1024
     version="0.1.0"
     "#;
         let bin = b"bin";
-        let mut hdr = KpkgHeader {
+        let hdr = KpkgHeader {
             version: 1,
             manifest_size: manifest.len() as u32,
             binary_size: bin.len() as u64,
