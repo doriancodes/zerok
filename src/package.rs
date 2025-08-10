@@ -213,4 +213,65 @@ version = "0.1.0"
             "error should include context about missing binary; got: {msg}"
         );
     }
+
+    #[test]
+    fn package_is_deterministic() {
+        use tempfile::{NamedTempFile, tempdir};
+        let dir = tempdir().unwrap();
+        let input = dir.path().join("in");
+        std::fs::create_dir_all(&input).unwrap();
+
+        let manifest = br#"name="demo"
+    version="0.1.0"
+    "#;
+        let binary = b"\x7fELF...";
+
+        std::fs::write(input.join(".kpkg.toml"), manifest).unwrap();
+        std::fs::write(input.join("binary"), binary).unwrap();
+
+        let out1 = NamedTempFile::new().unwrap();
+        let out2 = NamedTempFile::new().unwrap();
+
+        super::package(super::PackageOptions {
+            input: input.clone(),
+            output: out1.path().into(),
+        })
+        .unwrap();
+        super::package(super::PackageOptions {
+            input,
+            output: out2.path().into(),
+        })
+        .unwrap();
+
+        let a = std::fs::read(out1.path()).unwrap();
+        let b = std::fs::read(out2.path()).unwrap();
+        assert_eq!(a, b, "packaging must be reproducible");
+    }
+    #[test]
+    fn package_errors_on_unknown_manifest_fields() {
+        let dir = tempfile::tempdir().unwrap();
+        let input = dir.path().join("in");
+        std::fs::create_dir_all(&input).unwrap();
+        std::fs::write(input.join("binary"), b"\x7fELF").unwrap();
+        std::fs::write(
+            input.join(".kpkg.toml"),
+            br#"
+    name = "demo"
+    version = "0.1.0"
+    unexpected = true
+    "#,
+        )
+        .unwrap();
+
+        let out = tempfile::NamedTempFile::new().unwrap();
+        let err = super::package(super::PackageOptions {
+            input,
+            output: out.path().into(),
+        })
+        .unwrap_err();
+        assert!(
+            format!("{err:#}").contains("unknown field")
+                || format!("{err:#}").contains("expected schema")
+        );
+    }
 }
