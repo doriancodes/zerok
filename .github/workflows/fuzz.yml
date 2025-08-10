@@ -34,7 +34,7 @@ jobs:
       - name: Fuzz kpkg_load (15m)
         run: timeout 15m cargo fuzz run fuzz_kpkg_load || true
 
-      # Upload interesting findings so you can inspect them from CI
+      # Upload interesting findings so we can inspect them from CI
       - name: Upload artifacts (corpora & crashes)
         if: always()
         uses: actions/upload-artifact@v4
