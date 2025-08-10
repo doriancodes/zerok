@@ -70,6 +70,21 @@ hosts = ["api.example.com:443"]
 | `manifest_offset` | 26–33          | 8            | Start offset of the manifest data     |
 | (padding)         | 34–39          | 6            | Reserved for future use               |
 
+## Fuzzing
+
+Make sure that you have cargo-fuzz
+
+```bash
+# install cargo-fuzz
+cargo install cargo-fuzz
+
+# manifest parser
+cargo fuzz run fuzz_parse_manifest
+
+# .kpkg loader
+cargo fuzz run fuzz_kpkg_load
+```
+
 ## Roadmap
 - .meta.toml inclusion
 - Integration with Microkit/seL4

@@ -1,0 +1,25 @@
+[package]
+name = "zerok-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+# helpers for constructing inputs
+arbitrary = { version = "1", features = ["derive"] }
+toml = "0.8"
+
+[dependencies.zerok]
+path = ".."
+
+[[bin]]
+name = "fuzz_parse_manifest"
+path = "fuzz_targets/fuzz_parse_manifest.rs"
+
+[[bin]]
+name = "fuzz_kpkg_load"
+path = "fuzz_targets/fuzz_kpkg_load.rs"

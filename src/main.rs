@@ -1,15 +1,11 @@
-mod inspect;
-mod kpkg;
-mod package;
-mod signature;
-
 use clap::{Parser, Subcommand};
-use ed25519_dalek::{SigningKey, VerifyingKey};
-use package::{PackageOptions, package};
-use signature::{load_keypair, load_public_key, load_signature, sign_file, verify_file};
-// use signature::{load_keypair, load_public_key, load_signature, sign_file, verify_file};
 use std::fs;
 use std::path::PathBuf;
+use zerok::inspect::inspect;
+use zerok::package::{PackageOptions, package};
+use zerok::signature::{
+    generate_keypair, load_keypair, load_public_key, load_signature, sign_file, verify_file,
+};
 
 #[derive(Parser)]
 #[command(name = "zerok", version, author)]
@@ -60,7 +56,7 @@ fn main() -> anyhow::Result<()> {
             package(PackageOptions { input, output })?;
         }
         Commands::Inspect { path } => {
-            inspect::inspect(path)?;
+            inspect(path)?;
         }
         Commands::Sign { path, key } => {
             let keypair = load_keypair(&key)?;
@@ -83,7 +79,7 @@ fn main() -> anyhow::Result<()> {
             }
         }
         Commands::GenKey { private, public } => {
-            signature::generate_keypair(&private, &public)?;
+            generate_keypair(&private, &public)?;
         }
     }
 

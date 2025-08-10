@@ -1,0 +1,16 @@
+name: Fuzz (nightly)
+on:
+  schedule:
+    - cron: "0 3 * * *" # daily
+  workflow_dispatch:
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-fuzz
+      - run: cargo fuzz build
+      - run: timeout 15m cargo fuzz run fuzz_parse_manifest || true
+      - run: timeout 15m cargo fuzz run fuzz_kpkg_load || true
