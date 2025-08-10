@@ -7,7 +7,7 @@
 
 ## Documentation
 
-Check the documentation for more details https://doriancodes.github.io/zerok/
+Check the [documentation](https://doriancodes.github.io/zerok/) for more details
 
 ## Features
 
