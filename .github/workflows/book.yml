@@ -29,7 +29,9 @@ jobs:
 
       - name: Build book
         run: |
-          mdbook-admonish install book || true
+          cd book
+          mdbook-admonish install
+          cd ..
           mdbook build book
 
       - name: Upload artifact
