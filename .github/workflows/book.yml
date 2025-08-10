@@ -34,6 +34,7 @@ jobs:
         run: |
           cd book
           mdbook-admonish install
+          mdbook-mermaid install
           cd ..
           mdbook build book
 
