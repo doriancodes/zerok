@@ -1,7 +1,13 @@
-
 # zerok
 
+[![CI](https://github.com/doriancodes/zerok/actions/workflows/ci.yml/badge.svg)](https://github.com/doriancodes/zerok/actions/workflows/ci.yml)
+
+
 `zerok` is a command-line tool for creating secure, verifiable `.kpkg` packages based on a kernel-level capability model. It is part of the **k0** runtime ecosystem — a minimal, declarative execution layer designed around "zero trust for binaries."
+
+## Documentation
+
+Check the documentation for more details https://doriancodes.github.io/zerok/
 
 ## Features
 
@@ -53,7 +59,7 @@ paths = ["/etc/config"]
 [capabilities.network.connect]
 hosts = ["api.example.com:443"]
 ```
- 
+
 | Field Name        | Offset (bytes) | Size (bytes) | Description                           |
 | ----------------- | -------------- | ------------ | ------------------------------------- |
 | `magic`           | 0–3            | 4            | ASCII `"KPKG"` — file identifier      |
