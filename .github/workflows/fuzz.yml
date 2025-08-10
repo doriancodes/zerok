@@ -1,7 +1,8 @@
 name: Fuzz (nightly)
+
 on:
   schedule:
-    - cron: "0 3 * * *" # daily
+    - cron: "0 3 * * 0" # weekly on Sunday at 03:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -9,8 +10,36 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo install cargo-fuzz
-      - run: cargo fuzz build
-      - run: timeout 15m cargo fuzz run fuzz_parse_manifest || true
-      - run: timeout 15m cargo fuzz run fuzz_kpkg_load || true
+
+      # Nightly tends to work best with cargo-fuzz + sanitizers
+      - name: Setup Rust (nightly)
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Seed corpora (run fuzz.py)
+        run: python3 fuzz.py
+
+      - name: Install cargo-fuzz
+        run: cargo install cargo-fuzz
+
+      - name: Build fuzz targets
+        run: cargo fuzz build
+
+      # Run each target with a time cap. We don't fail the job unless a crash occurs first.
+      - name: Fuzz parse_manifest (15m)
+        run: timeout 15m cargo fuzz run fuzz_parse_manifest || true
+
+      - name: Fuzz kpkg_load (15m)
+        run: timeout 15m cargo fuzz run fuzz_kpkg_load || true
+
+      # Upload interesting findings so you can inspect them from CI
+      - name: Upload artifacts (corpora & crashes)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fuzz-artifacts
+          path: |
+            fuzz/artifacts/
+            fuzz/corpus/
