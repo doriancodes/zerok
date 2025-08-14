@@ -6,4 +6,6 @@ edition = "2024"
 license = "BSD-3-Clause"
 
 [dependencies]
-# none for now; add later as needed
+sel4 = { git = "https://github.com/seL4/rust-sel4" }
+sel4-root-task = { git = "https://github.com/seL4/rust-sel4" }
+sel4-logging = { git = "https://github.com/seL4/rust-sel4" }

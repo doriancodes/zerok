@@ -1,0 +1,9 @@
+#
+# Copyright 2023, Colias Group, LLC
+#
+# SPDX-License-Identifier: BSD-2-Clause
+#
+
+[toolchain]
+channel = "nightly-2025-07-07"
+components = ["rustfmt", "rust-src"]
