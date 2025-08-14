@@ -1,3 +1,4 @@
+#![forbid(unsafe_code)]
 use clap::{Parser, Subcommand};
 use std::fs;
 use std::path::PathBuf;
