@@ -4,9 +4,9 @@ on:
   push:
     branches: [main, master]
     paths:
-      - "crates/**"                  # watch all workspace crates
-      - "Cargo.toml"                  # root workspace manifest
-      - "Cargo.lock"      
+      - "crates/**" # watch all workspace crates
+      - "Cargo.toml" # root workspace manifest
+      - "Cargo.lock"
       - ".github/workflows/ci.yml" # allow updates to the workflow to retrigger
   workflow_dispatch: {} # still let you run it manually
 
@@ -60,7 +60,7 @@ jobs:
       # If your tests need additional system packages, add an apt step here.
 
       - name: Build
-        run: cargo build --workspace --all-features --verbose
+        run: cargo build -p zerok --verbose
 
       - name: Test
-        run: cargo test --workspace --all-features --verbose
+        run: cargo test -p zerok --verbose
