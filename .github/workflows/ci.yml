@@ -4,7 +4,9 @@ on:
   push:
     branches: [main, master]
     paths:
-      - "src/**" # only changes under src/ trigger
+      - "crates/**"                  # watch all workspace crates
+      - "Cargo.toml"                  # root workspace manifest
+      - "Cargo.lock"      
       - ".github/workflows/ci.yml" # allow updates to the workflow to retrigger
   workflow_dispatch: {} # still let you run it manually
 

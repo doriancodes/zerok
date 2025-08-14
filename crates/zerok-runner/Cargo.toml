@@ -1,0 +1,9 @@
+
+[package]
+name = "zerok-runner"
+version = "0.1.0"
+edition = "2024"
+license = "BSD-3-Clause"
+
+[dependencies]
+# none for now; add later as needed

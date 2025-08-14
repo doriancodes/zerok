@@ -70,7 +70,42 @@ hosts = ["api.example.com:443"]
 | `manifest_offset` | 26–33          | 8            | Start offset of the manifest data     |
 | (padding)         | 34–39          | 6            | Reserved for future use               |
 
-## Fuzzing
+## Development
+
+## Workspace Structure & Build
+
+This repository is organized as a [Cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) containing multiple crates:
+
+- zerok ->  packaging / signing / verification CLI
+- zerok-runner -> runtime binary (work in progress)
+- zerok-core -> shared types and helpers
+
+Build commands:
+
+```bash
+# Build everything in the workspace
+cargo build --workspace
+
+# Build only the main CLI
+cargo build -p zerok
+
+# Build only the runner
+cargo build -p zerok-runner
+
+```
+
+Run commands:
+
+```bash
+# Run the main CLI
+cargo run -p zerok -- --help
+
+# Run the runner binary
+cargo run -p zerok-runner
+
+```
+
+### Fuzzing
 
 Make sure that you have cargo-fuzz
 
