@@ -1,0 +1,4 @@
+cargo geiger --all-features > geiger-baseline.txt
+# In CI:
+cargo geiger --all-features > geiger-now.txt
+diff -u geiger-baseline.txt geiger-now.txt
