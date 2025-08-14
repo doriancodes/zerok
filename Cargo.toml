@@ -1,10 +1,6 @@
 
 [workspace]
-members = [
-  "crates/zerok",
-  "crates/zerok-runner",
-  "crates/zerok-core",
-]
+members = ["crates/zerok", "crates/zerok-sel4", "crates/zerok-core"]
 
 # optional but handy later
 resolver = "2"
