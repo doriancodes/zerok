@@ -1,4 +1,5 @@
 #![forbid(unsafe_code)]
+use anyhow::bail;
 use clap::{Parser, Subcommand};
 use std::fs;
 use std::path::PathBuf;
@@ -63,7 +64,7 @@ fn main() -> anyhow::Result<()> {
             let keypair = load_keypair(&key)?;
             let sig = sign_file(&path, &keypair);
             fs::write("signature.sig", sig?.to_bytes())?;
-            println!("File signed. Signature written to signature.sig");
+            bail!("File signed. Signature written to signature.sig");
         }
         Commands::Verify {
             path,
@@ -74,9 +75,9 @@ fn main() -> anyhow::Result<()> {
             let sig = load_signature(&signature)?;
             let valid = verify_file(&path, &public_key, &sig);
             if valid? {
-                println!("Signature is valid.");
+                bail!("Signature is valid.");
             } else {
-                println!("Signature is INVALID.");
+                bail!("Signature is INVALID.");
             }
         }
         Commands::GenKey { private, public } => {
