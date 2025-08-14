@@ -2,7 +2,7 @@ root_dir := $(dir $(lastword $(MAKEFILE_LIST)))/..
 
 build_dir := build
 
-crate_name := zerok-runner
+crate_name := zerok-sel4
 crate := $(build_dir)/$(crate_name).elf
 
 .PHONY: none
