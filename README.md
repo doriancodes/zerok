@@ -16,14 +16,10 @@ Check the [documentation](https://doriancodes.github.io/zerok/) for more details
 
 ## Usage
 
-Audit a binary:
 ```bash
-zerok audit elf ./mybinary
-```
-
-Inspect (validate) a manifest:
-```bash
-zerok inspect ./manifest.toml
+zerok inspect <MANIFEST>
+zerok audit elf <ELF_PATH> [--json FILE] [--manifest FILE]
+zerok audit trace <TRACE_LOG> [--strict] [--json FILE] [--manifest FILE]
 ```
 
 ## Manifest Format

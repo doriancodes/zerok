@@ -2,3 +2,4 @@
 /project*
 *.kpkg
 /proptest-regressions
+*.log
