@@ -1,13 +1,7 @@
 #![forbid(unsafe_code)]
-use anyhow::bail;
 use clap::{Parser, Subcommand};
-use std::fs;
 use std::path::PathBuf;
 use zerok::inspect::inspect;
-use zerok::package::{PackageOptions, package};
-use zerok::signature::{
-    generate_keypair, load_keypair, load_public_key, load_signature, sign_file, verify_file,
-};
 
 #[derive(Parser)]
 #[command(name = "zerok", version, author)]
@@ -18,35 +12,9 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Package {
-        #[arg(short, long)]
-        input: PathBuf,
-        #[arg(short, long)]
-        output: PathBuf,
-    },
     Inspect {
         #[arg(short, long)]
         path: PathBuf,
-    },
-    Sign {
-        #[arg(short, long)]
-        path: PathBuf,
-        #[arg(short = 'k', long)]
-        key: PathBuf,
-    },
-    Verify {
-        #[arg(short, long)]
-        path: PathBuf,
-        #[arg(short = 'k', long)]
-        pubkey: PathBuf,
-        #[arg(short = 's', long)]
-        signature: PathBuf,
-    },
-    GenKey {
-        #[arg(long)]
-        private: PathBuf,
-        #[arg(long)]
-        public: PathBuf,
     },
 }
 
@@ -54,34 +22,8 @@ fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Package { input, output } => {
-            package(PackageOptions { input, output })?;
-        }
         Commands::Inspect { path } => {
             inspect(path)?;
-        }
-        Commands::Sign { path, key } => {
-            let keypair = load_keypair(&key)?;
-            let sig = sign_file(&path, &keypair);
-            fs::write("signature.sig", sig?.to_bytes())?;
-            bail!("File signed. Signature written to signature.sig");
-        }
-        Commands::Verify {
-            path,
-            pubkey,
-            signature,
-        } => {
-            let public_key = load_public_key(&pubkey)?;
-            let sig = load_signature(&signature)?;
-            let valid = verify_file(&path, &public_key, &sig);
-            if valid? {
-                bail!("Signature is valid.");
-            } else {
-                bail!("Signature is INVALID.");
-            }
-        }
-        Commands::GenKey { private, public } => {
-            generate_keypair(&private, &public)?;
         }
     }
 

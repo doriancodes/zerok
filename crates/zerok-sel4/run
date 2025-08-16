@@ -1,4 +1,0 @@
-make -C docker rm-container
-make -C docker build
-make -C docker run
-make -C docker exec

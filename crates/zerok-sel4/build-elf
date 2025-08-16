@@ -1,4 +1,0 @@
-aarch64-linux-gnu-as -o payload.o payload.S
-# Link as PIE; put .text near 0 so e_entry is small and base-adjust math is clean
-aarch64-linux-gnu-ld -pie -nostdlib -Ttext-segment=0x1000 -o payload.elf payload.o
-# (You can also use: -Ttext 0x1000; using a non-zero avoids NULL-ish addresses.)
