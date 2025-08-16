@@ -31,9 +31,6 @@ jobs:
       - name: Fuzz parse_manifest (15m)
         run: timeout 15m cargo fuzz run fuzz_parse_manifest || true
 
-      - name: Fuzz kpkg_load (15m)
-        run: timeout 15m cargo fuzz run fuzz_kpkg_load || true
-
       # Upload interesting findings so we can inspect them from CI
       - name: Upload artifacts (corpora & crashes)
         if: always()

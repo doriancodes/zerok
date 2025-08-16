@@ -1,2 +1,2 @@
 pub mod inspect;
-pub mod kpkg;
+pub mod manifest;
