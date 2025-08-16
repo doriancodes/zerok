@@ -60,7 +60,7 @@ jobs:
       # If your tests need additional system packages, add an apt step here.
 
       - name: Build
-        run: cargo build -p zerok --verbose
+        run: cargo build --verbose
 
       - name: Test
-        run: cargo test -p zerok --verbose
+        run: cargo test --verbose
