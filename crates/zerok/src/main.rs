@@ -5,6 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use zerok::inspect::inspect;
 use zerok::package::{PackageOptions, package};
+use zerok::run::run_kpkg;
 use zerok::signature::{
     generate_keypair, load_keypair, load_public_key, load_signature, sign_file, verify_file,
 };
@@ -48,6 +49,26 @@ enum Commands {
         #[arg(long)]
         public: PathBuf,
     },
+    Run {
+        #[arg(short, long)]
+        path: PathBuf,
+
+        /// Optional detached signature for the .kpkg
+        #[arg(short = 's', long)]
+        signature: Option<PathBuf>,
+
+        /// Optional public key for signature verification
+        #[arg(short = 'k', long)]
+        pubkey: Option<PathBuf>,
+
+        /// Print manifest and exit without running
+        #[arg(long)]
+        dry_run: bool,
+
+        /// Arguments to pass to the embedded binary (after --)
+        #[arg(last = true)]
+        args: Vec<String>,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -82,6 +103,17 @@ fn main() -> anyhow::Result<()> {
         }
         Commands::GenKey { private, public } => {
             generate_keypair(&private, &public)?;
+        }
+        Commands::Run {
+            path,
+            signature,
+            pubkey,
+            dry_run,
+            args,
+        } => {
+            let status = run_kpkg(&path, signature.as_ref(), pubkey.as_ref(), dry_run, &args)?;
+            // Mirror typical CLI behavior
+            std::process::exit(status);
         }
     }
 

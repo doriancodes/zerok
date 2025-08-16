@@ -1,6 +1,12 @@
 
 [workspace]
-members = ["crates/zerok", "crates/zerok-sel4", "crates/zerok-core"]
+members = [
+    "crates/zerok",
+    #"crates/zerok-sel4",
+    "crates/zerok-core",
+    "crates/zerok-ipc",
+    "crates/zerok-launcher",
+]
 
 # optional but handy later
 resolver = "2"

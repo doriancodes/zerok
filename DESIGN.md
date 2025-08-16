@@ -2,7 +2,7 @@
 
 ## Capability pipeline
 
- 
+
 ```bash
 
 ┌────────────┐      ┌───────────┐      ┌────────────────┐      ┌──────────────────┐
@@ -46,7 +46,7 @@
 
 ## CSpace layout example (tight process)
 ```bash
- 
+
 Slot  Cap
 ----  ------------------------------------------------------------
 0     CNode (self)
@@ -100,4 +100,84 @@ Slot  Cap
   "resources":{"max_rss":7340032,"mapped_bytes":8388608,"cpu_ms":1234},
   "exit":{"code":0,"reason":"clean"}
 }
+
 ```
+| Dimension                 | **`.kpkg` runner**                                                   | **Docker/OCI**                                                | **Flatpak**                                                                    |
+| ------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| **Trust model**           | **Zero-trust by default**; binary + capabilities are signed together | Trusts image + runtime flags set at deploy time               | Trusts app + portal permissions; sandbox policy partly runtime/desktop-managed |
+| **Policy source**         | **Inside the artifact** (`.kpkg.toml`, signed)                       | External runtime config (CLI flags, YAML, admission policies) | Manifest + permissions in Flatpak metadata; enforced by portals/sandbox        |
+| **Enforcement default**   | **Deny-by-default**; only declared caps allowed                      | Permissive unless you add seccomp, AppArmor, RO mounts, etc.  | User-mediated permissions; portals restrict sensitive ops                      |
+| **Crypto binding**        | **Binary + manifest** are cryptographically bound                    | Image is signed (optionally), runtime policy is not           | App metadata can be signed; runtime permissions separate                       |
+| **Daemon required**       | **No** (single user-space binary)                                    | **Yes** (dockerd/containerd/cri-o)                            | Uses Flatpak/OSTree services                                                   |
+| **Root requirements**     | Works rootless (user namespaces, Landlock, cgroups v2)               | Root/privileged helpers common; rootless improving but uneven | Desktop user level; system services handle mounts/sandbox                      |
+| **Filesystem model**      | Optional: none (memfd exec) or tiny RO rootfs; selective bind-ins    | Layered rootfs; broad FS by default unless restricted         | OSTree runtime + RO app; portals for host access                               |
+| **Syscall control**       | **Per-pkg seccomp** from manifest (strict allowlist)                 | Profiles exist but often generic; opt-in                      | Bubblewrap profile; not per-app declarative in the artifact                    |
+| **File access**           | **Manifest → Landlock/RO binds**                                     | Mounts/volumes via runtime flags                              | Portals (user prompts) + predefined dirs                                       |
+| **Network control**       | **Manifest → block/allowlist** (seccomp user-notif or cgroup BPF)    | Typically open; network policies external (CNI/K8s)           | Portals and sandbox rules; coarse-grained                                      |
+| **Resource limits**       | **Manifest → cgroups/rlimits**                                       | cgroups via flags/compose/K8s manifests                       | Limited; desktop-oriented QoS                                                  |
+| **Portability of policy** | **High**: policy ships with the app                                  | **Low–Medium**: policy lives outside the image                | **Medium**: metadata ships, but enforcement depends on host                    |
+| **Startup overhead**      | **Very low** (no image pull/unpack; direct `exec`)                   | Medium (image pull/unpack; shim)                              | Medium (runtime setup, portals)                                                |
+| **Attestation story**     | **Strong**: one signed blob = code + caps                            | Split: signed image + separate runtime config                 | Signed app + separate runtime decisions                                        |
+| **Target domain**         | **Security-first CLI/services, CI/CD, prod hardening**               | General purpose packaging & deployment                        | Desktop apps, UX-friendly isolation                                            |
+
+```bash
+          ┌──────────────────────────────┐
+          │  zerok (main process, MT)    │
+          │------------------------------│
+          │ - Parse & verify .kpkg       │
+          │ - Build sandbox plan         │
+          │ - Open staging dirfd         │
+          │ - Create socketpair          │
+          │ - Spawn helper (posix_spawn) │
+          └──────────────┬───────────────┘
+                         │ control FD + plan
+                         ▼
+          ┌──────────────────────────────┐
+          │ zerok-launcher (helper, ST)  │
+          │------------------------------│
+          │ 1. Receive plan + dirfd      │
+          │ 2. Stage binary:             │
+          │    - O_TMPFILE + linkat       │
+          │      (or tmp + rename)        │
+          │ 3. Apply sandbox:             │
+          │    - prctl(NO_NEW_PRIVS)      │
+          │    - unshare namespaces       │
+          │    - setup mounts/binds       │
+          │    - join cgroups             │
+          │    - install Landlock         │
+          │    - load seccomp              │
+          │    - drop caps / setuid        │
+          │ 4. Signal "READY" to parent   │
+          │ 5. execve(path)               │
+          └──────────────┬───────────────┘
+                         │ exec replaces process
+                         ▼
+          ┌──────────────────────────────┐
+          │     Target binary (.kpkg)    │
+          │   Running under sandbox      │
+          │   Path visible to audit/AV   │
+          └──────────────────────────────┘
+
+Parent stays alive:
+- Supervises child
+- Forwards signals
+- Unlinks staged binary after exec
+- Logs run receipt
+```
+Legend:
+- MT = multithreaded
+- ST = single-threaded
+- O_TMPFILE+linkat ensures atomic staging with a real audit-visible path
+- Parent never forks → MT safety preserved
+- Helper does all kernel capability setup before execve
+
+[pipeline img]()
+1. parent spawns helper (passes FD3 + optional dirfd)
+2. parent sends plan
+3. helper stages via O_TMPFILE+linkat (or tmp+rename)
+4. helper applies sandbox (prctl, unshare, mounts, cgroups, Landlock, seccomp, drop caps/uids)
+5. helper signals READY
+6. helper execve(path)
+7. kernel starts target binary
+8. parent supervises & unlinks on exit, writes run receipt
+9. parent collects status / forwards signals

@@ -31,9 +31,11 @@ rand_core = "0.6"
 # sha2 doesn’t need extra features unless you want std
 sha2 = { version = "0.10", default-features = false, features = ["std"] }
 ed25519 = "2.2.0"
+tempfile = "3"
+zerok-ipc = { path = "../zerok-ipc" }
+nix = { version = "0.28", default-features = false, features = ["process"] }
 
 [dev-dependencies]
-tempfile = "3"
 proptest = { version = "1.7", default-features = false, features = [
     "std",
     "timeout",
