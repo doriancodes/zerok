@@ -20,7 +20,3 @@ path = ".."
 [[bin]]
 name = "fuzz_parse_manifest"
 path = "fuzz_targets/fuzz_parse_manifest.rs"
-
-[[bin]]
-name = "fuzz_kpkg_load"
-path = "fuzz_targets/fuzz_kpkg_load.rs"

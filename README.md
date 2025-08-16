@@ -43,33 +43,6 @@ paths = ["/etc/config"]
 hosts = ["api.example.com:443"]
 ```
 
-## Development
-
-## Workspace Structure & Build
-
-This repository is organized as a [Cargo workspace](https://doc.rust-lang.org/book/ch14-03-cargo-workspaces.html) containing multiple crates:
-
-- zerok → CLI for auditing and manifest validation
-- zerok-core → shared types and helpers
-
-Build commands:
-
-```bash
-# Build everything in the workspace
-cargo build --workspace
-
-# Build only the main CLI
-cargo build -p zerok
-
-```
-
-Run commands:
-
-```bash
-# Run the main CLI
-cargo run -p zerok -- --help
-```
-
 ### Fuzzing
 
 Make sure that you have cargo-fuzz
