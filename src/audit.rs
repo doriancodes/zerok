@@ -1,4 +1,3 @@
-// src/audit.rs
 #![forbid(unsafe_code)]
 
 use anyhow::{Context, Result, anyhow};
@@ -6,16 +5,26 @@ use goblin::elf;
 use regex::Regex;
 use std::{collections::BTreeSet, fs, path::Path};
 
+fn map_machine(m: u16) -> &'static str {
+    use goblin::elf::header::*;
+    match m {
+        EM_X86_64 => "EM_X86_64",
+        EM_AARCH64 => "EM_AARCH64",
+        EM_386 => "EM_386",
+        EM_ARM => "EM_ARM",
+        EM_RISCV => "EM_RISCV",
+        EM_MIPS => "EM_MIPS",
+        _ => "UNKNOWN",
+    }
+}
+
 pub fn audit_elf<P: AsRef<Path>>(path: P) -> Result<()> {
     let buf =
         fs::read(&path).with_context(|| format!("failed to read {}", path.as_ref().display()))?;
 
     // --- Basic ELF parse (goblin) ---
     let elf = elf::Elf::parse(&buf).map_err(|e| anyhow!("not a valid ELF: {e}"))?;
-
-    let arch = format!("{:?}", elf.header.e_machine);
     let is_pie = elf.header.e_type == goblin::elf::header::ET_DYN;
-    // let has_gnu_relro = elf.gnu_relro.is_some();
 
     let has_gnu_relro = elf
         .program_headers
@@ -75,34 +84,35 @@ pub fn audit_elf<P: AsRef<Path>>(path: P) -> Result<()> {
     // Needed shared libraries
     let needed: BTreeSet<_> = elf.libraries.iter().map(|s| s.to_string()).collect();
 
-    // Strings: harvest candidate hosts and config paths
-    let ascii_strings = extract_ascii_strings(&buf, 4);
-    let host_re = Regex::new(r"(?i)\b([a-z0-9][a-z0-9\-\.]*\.[a-z]{2,})(?::(\d{2,5}))?\b").unwrap();
+    // --------------- strings: use section-bounded scan -----------------
+    let ascii_strings = strings_from_elf_sections(&elf, &buf, 4); // Strings: harvest candidate hosts and config paths
+
     let path_re = Regex::new(r#"(/(?:etc|var|usr|home)/[^\s"']+)"#).unwrap();
 
-    let mut hosts = BTreeSet::new();
     let mut paths = BTreeSet::new();
     for s in &ascii_strings {
-        if let Some(c) = host_re.captures(s) {
-            hosts.insert(match (c.get(1), c.get(2)) {
-                (Some(h), Some(p)) => format!("{}:{}", h.as_str(), p.as_str()),
-                (Some(h), None) => h.as_str().to_string(),
-                _ => continue,
-            });
-        }
         if let Some(c) = path_re.captures(s) {
             paths.insert(c[1].to_string());
         }
     }
+    let net_intent = has_net_intent_from_imports(&imports);
 
     // Report
     println!("== ELF Audit ==");
     println!("File: {}", path.as_ref().display());
-    println!("Arch: {}", arch);
+    println!(
+        "Arch: {} ({})",
+        elf.header.e_machine,
+        map_machine(elf.header.e_machine)
+    );
+    // println!("Arch: {}", arch);
     println!("PIE : {}", yesno(is_pie));
     println!("NX  : {}", yesno(nx_enabled));
     println!("RELRO (GNU_RELRO): {}", yesno(has_gnu_relro));
     println!("BIND_NOW         : {}", yesno(bind_now));
+
+    let full_relro = has_gnu_relro && bind_now;
+    println!("Full RELRO          : {}", yesno(full_relro));
 
     if !needed.is_empty() {
         println!("\nShared libs (DT_NEEDED):");
@@ -125,12 +135,7 @@ pub fn audit_elf<P: AsRef<Path>>(path: P) -> Result<()> {
         }
     }
 
-    if !hosts.is_empty() {
-        println!("\nCandidate hosts (from strings):");
-        for h in &hosts {
-            println!("  - {}", h);
-        }
-    }
+    println!("\nNetwork capability required: {}", yesno(net_intent));
 
     // Suggested manifest skeleton
     println!("\n== Suggested manifest (skeleton) ==");
@@ -151,11 +156,9 @@ pub fn audit_elf<P: AsRef<Path>>(path: P) -> Result<()> {
         print_csv(&paths);
         println!("]");
     }
-    if !hosts.is_empty() {
+    if net_intent {
         println!("\n[capabilities.network.connect]");
-        print!("hosts = [");
-        print_csv(&hosts);
-        println!("]");
+        print!("hosts = []\n");
     }
 
     Ok(())
@@ -279,13 +282,14 @@ fn is_interesting_symbol(name: &str) -> bool {
     KEYWORDS.iter().any(|k| name.contains(k))
 }
 
+/// Extract ASCII-ish strings from a byte slice
 fn extract_ascii_strings(buf: &[u8], min: usize) -> Vec<String> {
     let mut out = Vec::new();
     let mut cur = Vec::new();
     for &b in buf {
-        if b.is_ascii_graphic() || b == b' ' {
+        if (0x20..=0x7E).contains(&b) || b == b'\t' {
             cur.push(b);
-        } else {
+        } else if !cur.is_empty() {
             if cur.len() >= min {
                 if let Ok(s) = String::from_utf8(cur.clone()) {
                     out.push(s);
@@ -300,6 +304,77 @@ fn extract_ascii_strings(buf: &[u8], min: usize) -> Vec<String> {
         }
     }
     out
+}
+
+/// Collect strings **only** from allocated, non-exec PROGBITS sections.
+/// Falls back to whole-file if sections look bogus.
+fn strings_from_elf_sections<'a>(elf: &elf::Elf<'a>, bytes: &'a [u8], min: usize) -> Vec<String> {
+    use goblin::elf::section_header::*;
+    let mut out = Vec::new();
+    let mut any = false;
+
+    for sh in &elf.section_headers {
+        let is_alloc = (sh.sh_flags & (SHF_ALLOC as u64)) != 0;
+        let is_prog = sh.sh_type == SHT_PROGBITS;
+        let is_exec = (sh.sh_flags & (SHF_EXECINSTR as u64)) != 0;
+        if is_alloc && is_prog && !is_exec {
+            let start = sh.sh_offset as usize;
+            let end = start.saturating_add(sh.sh_size as usize);
+            if end <= bytes.len() {
+                out.extend(extract_ascii_strings(&bytes[start..end], min));
+                any = true;
+            }
+        }
+    }
+
+    if any {
+        out
+    } else {
+        extract_ascii_strings(bytes, min)
+    }
+}
+
+fn has_net_intent_from_imports(imports: &std::collections::BTreeSet<String>) -> bool {
+    // cover common libc + OpenSSL entry points; `contains` handles versioned names (e.g. "connect@@GLIBC_2.2.5")
+    const NET_SYMS: &[&str] = &[
+        "socket",
+        "socketpair",
+        "bind",
+        "connect",
+        "listen",
+        "accept",
+        "accept4",
+        "getsockname",
+        "getpeername",
+        "send",
+        "sendto",
+        "sendmsg",
+        "sendmmsg",
+        "recv",
+        "recvfrom",
+        "recvmsg",
+        "recvmmsg",
+        "setsockopt",
+        "getsockopt",
+        "shutdown",
+        // libc name variants you sometimes see
+        "__socket",
+        "__connect",
+        "__send",
+        "__recv",
+        // common TLS front doors (optional, helps catch HTTPS tools)
+        "SSL_",
+        "TLS_",
+        "BIO_",
+        // DNS helpers
+        "getaddrinfo",
+        "getnameinfo",
+        "gethostbyname",
+        "gethostbyaddr",
+    ];
+    imports
+        .iter()
+        .any(|s| NET_SYMS.iter().any(|p| s.contains(p)))
 }
 
 fn print_csv(set: &BTreeSet<String>) {
